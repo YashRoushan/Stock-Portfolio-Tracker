@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TransactionType {
+  BUY
+  SELL
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  portfolios   Portfolio[]
+  transactions Transaction[]
+  dividends    Dividend[]
+}
+
+model Portfolio {
+  id           String       @id @default(uuid())
+  name         String
+  userId       String
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+  dividends    Dividend[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id           String          @id @default(uuid())
+  userId       String
+  portfolioId  String
+  ticker       String
+  type         TransactionType
+  quantity     Decimal         @db.Decimal(20, 6)
+  priceCents   Int
+  feeCents     Int
+  occurredAt   DateTime
+  createdAt    DateTime         @default(now())
+  user         User             @relation(fields: [userId], references: [id])
+  portfolio    Portfolio        @relation(fields: [portfolioId], references: [id])
+
+  @@index([portfolioId])
+  @@index([userId])
+  @@index([ticker])
+}
+
+model Dividend {
+  id           String      @id @default(uuid())
+  userId       String
+  portfolioId  String
+  ticker       String
+  amountCents  Int
+  occurredAt   DateTime
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id])
+  portfolio    Portfolio   @relation(fields: [portfolioId], references: [id])
+
+  @@index([portfolioId])
+  @@index([ticker])
+}

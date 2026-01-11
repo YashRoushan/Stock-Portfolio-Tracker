@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: "IBM Plex Sans", sans-serif;
+  background: radial-gradient(circle at top, #ffffff 0%, #f7f4ef 45%, #eef2f3 100%);
+  min-height: 100vh;
+}
+
+.bg-grid {
+  background-image: linear-gradient(rgba(17, 20, 21, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 20, 21, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
