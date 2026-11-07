@@ -1,5 +1,7 @@
 # Stock Portfolio Tracker
 
+[Open the live demo](https://yash-stock-portfolio-tracker.yashroushan.chatgpt.site) · [Yash’s portfolio](https://yashroushan.github.io/portfolio-website/engineering/)
+
 Production-ready full-stack app for tracking multi-portfolio holdings, live prices, and dividend income. Built with React + Vite + TailwindCSS + Recharts, Node + Express + Prisma, PostgreSQL, and JWT auth.
 
 ## Architecture
@@ -47,6 +49,10 @@ Money values are stored in cents as integers. Tickers are stored in uppercase.
 - Dividends: manual entry (provider-ready API contract)
 - Charts: portfolio value trend and allocation pie
 - Input validation (zod) and password hashing (bcrypt)
+
+## Hosted demo
+
+The online version has a one-click guest workspace, saved portfolio records and explicitly labelled illustrative prices. See [hosted setup and deployment](hosted/README.md) for the Worker/D1 deployment and verification instructions.
 
 ## Local setup
 
@@ -102,8 +108,9 @@ docker compose up --build
 
 ## Screenshots
 
-- Dashboard placeholder: `docs/screenshots/dashboard.png`
-- Portfolio detail placeholder: `docs/screenshots/portfolio.png`
+![Deployed dashboard](docs/screenshots/dashboard.png)
+
+![Deployed holdings, allocation and cost-basis history](docs/screenshots/portfolio.png)
 
 ## Testing
 

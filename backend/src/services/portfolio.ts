@@ -1,4 +1,13 @@
-import { Transaction, TransactionType, Dividend } from "@prisma/client";
+export type PortfolioTransaction = {
+  ticker: string;
+  type: "BUY" | "SELL";
+  quantity: number | { toString(): string };
+  priceCents: number;
+  feeCents: number;
+  occurredAt: Date;
+};
+export type PortfolioDividend = { ticker: string; amountCents: number };
+
 import { mulCents } from "../utils/money";
 import { toDateKey } from "../utils/date";
 
@@ -34,11 +43,11 @@ type PriceMap = Record<string, { priceCents: number; changeCents: number }>;
 const toNumber = (value: unknown): number => Number(value);
 
 export const computeHoldings = (
-  transactions: Transaction[],
-  dividends: Dividend[],
+  transactions: PortfolioTransaction[],
+  dividends: PortfolioDividend[],
   prices: PriceMap
 ): { holdings: HoldingMetrics[]; series: Array<{ date: string; valueCents: number }> } => {
-  const grouped = new Map<string, Transaction[]>();
+  const grouped = new Map<string, PortfolioTransaction[]>();
   for (const tx of transactions) {
     const ticker = tx.ticker.toUpperCase();
     if (!grouped.has(ticker)) {
@@ -64,7 +73,7 @@ export const computeHoldings = (
     for (const tx of sorted) {
       const qty = toNumber(tx.quantity);
       const gross = mulCents(tx.priceCents, qty);
-      if (tx.type === TransactionType.BUY) {
+      if (tx.type === "BUY") {
         quantity += qty;
         costBasisCents += gross + tx.feeCents;
       } else {
@@ -136,9 +145,9 @@ export const summarizePortfolio = (
   };
 };
 
-const computeSimplifiedSeries = (transactions: Transaction[]): Array<{ date: string; valueCents: number }> => {
+const computeSimplifiedSeries = (transactions: PortfolioTransaction[]): Array<{ date: string; valueCents: number }> => {
   const sorted = [...transactions].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
-  const byDate = new Map<string, Transaction[]>();
+  const byDate = new Map<string, PortfolioTransaction[]>();
 
   for (const tx of sorted) {
     const key = toDateKey(tx.occurredAt);
@@ -161,7 +170,7 @@ const computeSimplifiedSeries = (transactions: Transaction[]): Array<{ date: str
       const qty = toNumber(tx.quantity);
       const gross = mulCents(tx.priceCents, qty);
 
-      if (tx.type === TransactionType.BUY) {
+      if (tx.type === "BUY") {
         record.qty += qty;
         record.costBasisCents += gross + tx.feeCents;
       } else {

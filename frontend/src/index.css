@@ -8,12 +8,69 @@
 
 body {
   font-family: "IBM Plex Sans", sans-serif;
-  background: radial-gradient(circle at top, #ffffff 0%, #f7f4ef 45%, #eef2f3 100%);
+  background: radial-gradient(
+    circle at top,
+    #ffffff 0%,
+    #f7f4ef 45%,
+    #eef2f3 100%
+  );
   min-height: 100vh;
 }
 
 .bg-grid {
-  background-image: linear-gradient(rgba(17, 20, 21, 0.05) 1px, transparent 1px),
+  background-image:
+    linear-gradient(rgba(17, 20, 21, 0.05) 1px, transparent 1px),
     linear-gradient(90deg, rgba(17, 20, 21, 0.05) 1px, transparent 1px);
   background-size: 24px 24px;
+}
+
+.grid > * {
+  min-width: 0;
+}
+
+input,
+select,
+textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+
+button {
+  min-height: 40px;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+:focus-visible {
+  outline: 3px solid #8b472c;
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 100;
+  transform: translateY(-150%);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: #f7f4ef;
+  background: #111415;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -27,14 +27,25 @@ const RegisterPage = () => {
 
   return (
     <Layout>
-      <div className="mx-auto mt-12 grid max-w-4xl gap-10 lg:grid-cols-2">
-        <div className="rounded-3xl bg-white/80 p-10 shadow-card">
-          <h1 className="font-display text-3xl font-semibold text-ink">Create your account</h1>
-          <p className="mt-2 text-ink/60">Start tracking long-term growth and income streams.</p>
+      <div className="mx-auto mt-6 grid max-w-4xl gap-6 sm:mt-10 sm:gap-10 lg:grid-cols-2">
+        <div className="rounded-3xl bg-white/80 p-6 sm:p-10 shadow-card">
+          <h1 className="font-display text-3xl font-semibold text-ink">
+            Create your account
+          </h1>
+          <p className="mt-2 text-ink/70">
+            Start tracking long-term growth and income streams.
+          </p>
           <form onSubmit={onSubmit} className="mt-8 space-y-4">
             <div>
-              <label className="text-sm font-semibold text-ink/70">Email</label>
+              <label
+                htmlFor="register-email"
+                className="text-sm font-semibold text-ink/70"
+              >
+                Email
+              </label>
               <input
+                id="register-email"
+                autoComplete="email"
                 type="email"
                 className="mt-2 w-full rounded-2xl border border-ink/10 px-4 py-3"
                 value={email}
@@ -43,8 +54,17 @@ const RegisterPage = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-ink/70">Password</label>
+              <label
+                htmlFor="register-password"
+                className="text-sm font-semibold text-ink/70"
+              >
+                Password
+              </label>
               <input
+                id="register-password"
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={72}
                 type="password"
                 className="mt-2 w-full rounded-2xl border border-ink/10 px-4 py-3"
                 value={password}
@@ -52,7 +72,11 @@ const RegisterPage = () => {
                 required
               />
             </div>
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? (
+              <p role="alert" className="text-sm text-red-700">
+                {error}
+              </p>
+            ) : null}
             <button
               type="submit"
               className="w-full rounded-full bg-ink px-6 py-3 text-sm font-semibold uppercase tracking-wide text-bone transition hover:bg-ink/90"
@@ -61,11 +85,14 @@ const RegisterPage = () => {
               {loading ? "Creating..." : "Register"}
             </button>
           </form>
-          <p className="mt-6 text-sm text-ink/60">
-            Already have an account? <Link to="/login" className="font-semibold text-ink">Sign in</Link>
+          <p className="mt-6 text-sm text-ink/70">
+            Already have an account?{" "}
+            <Link to="/login" className="font-semibold text-ink">
+              Sign in
+            </Link>
           </p>
         </div>
-        <div className="rounded-3xl bg-ink p-10 text-bone shadow-card">
+        <div className="rounded-3xl bg-ink p-6 sm:p-10 text-bone shadow-card">
           <h2 className="font-display text-2xl font-semibold">What you get</h2>
           <ul className="mt-6 space-y-4 text-sm text-bone/80">
             <li>Portfolio KPI dashboard and trend charts</li>

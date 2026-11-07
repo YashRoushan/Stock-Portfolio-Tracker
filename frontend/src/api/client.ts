@@ -1,6 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = (
+  import.meta.env.VITE_API_URL ?? "http://localhost:4000"
+).replace(/\/$/, "");
 
-export const getToken = () => localStorage.getItem("token");
+export const isHostedDemo = import.meta.env.VITE_DEMO_MODE === "true";
+
+export const getToken = () => {
+  try {
+    return localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+};
 
 export const setToken = (token: string | null) => {
   if (!token) {
@@ -10,19 +20,24 @@ export const setToken = (token: string | null) => {
   localStorage.setItem("token", token);
 };
 
-export const apiFetch = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+export const apiFetch = async <T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> => {
   const token = getToken();
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    }
+      ...(options.headers || {}),
+    },
   });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({ error: "Request failed" }));
+    const errorBody = await response
+      .json()
+      .catch(() => ({ error: "Request failed" }));
     throw new Error(errorBody.error || "Request failed");
   }
 
