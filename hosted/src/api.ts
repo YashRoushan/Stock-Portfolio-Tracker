@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { computeHoldings, summarizePortfolio } from "../../backend/src/services/portfolio";
 import { authenticate, hashPassword, issueToken, limitAuthentication, passwordMatches, sessionUser, type ApiEnvironment } from "./auth";
-import { demoPricing, getSampleQuotes } from "./quotes";
+import { configuredPricing, portfolioQuotes } from "./quotes";
 import { credentialsSchema, dividendSchema, portfolioSchema, transactionSchema } from "./validation";
 import type { DividendRow, PortfolioRow, SessionUser, TransactionRow, UserRow } from "./types";
 import type { Context } from "hono";
@@ -72,7 +72,7 @@ async function authResponse(c: Context<ApiEnvironment>, user: SessionUser) {
 
 api.get("/api/health", async (c) => {
   await c.env.DB.prepare("SELECT 1 AS healthy").first();
-  return c.json({ status: "ok", database: "D1", mode: "demo", pricing: demoPricing });
+  return c.json({ status: "ok", database: "D1", mode: "demo", pricing: configuredPricing(c.env) });
 });
 
 api.post("/api/auth/register", async (c) => {
@@ -193,10 +193,10 @@ api.get("/api/portfolios/:id/summary", async (c) => {
   const transactionRows = transactions.results as unknown as TransactionRow[];
   const dividendRows = dividends.results as unknown as DividendRow[];
   const tickers = transactionRows.map((row) => row.ticker);
-  const quotes = getSampleQuotes(tickers);
-  const priceMap = Object.fromEntries(quotes.map((quote) => [quote.ticker, quote]));
+  const { prices, pricing } = await portfolioQuotes(c.env, tickers);
+  const priceMap = Object.fromEntries(prices.map((quote) => [quote.ticker, quote]));
   const result = computeHoldings(transactionRows.map(publicTransaction), dividendRows.map(publicDividend), priceMap);
-  return c.json({ summary: summarizePortfolio(result.holdings, result.series), pricing: demoPricing });
+  return c.json({ summary: summarizePortfolio(result.holdings, result.series), pricing });
 });
 
 api.get("/api/transactions", async (c) => {
@@ -289,17 +289,17 @@ api.post("/api/dividends", async (c) => {
 });
 
 api.get("/api/dividends/:ticker", (c) => {
-  return c.json({ dividends: [], pricing: demoPricing });
+  return c.json({ dividends: [], pricing: configuredPricing(c.env) });
 });
 
-api.get("/api/prices", (c) => {
+api.get("/api/prices", async (c) => {
   const query = c.req.query("tickers");
   if (!query || query.length > 500) return c.json({ error: "Provide a comma-separated ticker list." }, 400);
   const tickers = query.split(",").map((ticker) => ticker.trim().toUpperCase());
   if (tickers.length > 25 || tickers.some((ticker) => !/^[A-Z0-9.^=-]{1,12}$/.test(ticker))) {
     return c.json({ error: "Provide up to 25 valid ticker symbols." }, 400);
   }
-  return c.json({ prices: getSampleQuotes(tickers), pricing: demoPricing });
+  return c.json(await portfolioQuotes(c.env, tickers));
 });
 
 api.notFound((c) => c.json({ error: "API route not found." }, 404));

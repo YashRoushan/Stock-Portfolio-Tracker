@@ -2,6 +2,9 @@ import api from './api';
 import type { HostedBindings } from './types';
 import { assets } from '../generated/assets';
 
+// Quotes render in TradingView's separate origin. No vendor scripts run in the app origin.
+const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-src https://www.tradingview-widget.com/embed-widget/market-quotes/; base-uri 'self'; form-action 'self'; object-src 'none'";
+
 function assetResponse(request: Request): Response {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } });
@@ -16,7 +19,7 @@ function assetResponse(request: Request): Response {
     ETag: asset.etag,
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'",
+    'Content-Security-Policy': APP_CSP,
   });
   if (request.headers.get('If-None-Match') === asset.etag) return new Response(null, { status: 304, headers });
   if (request.method === 'HEAD') return new Response(null, { headers });

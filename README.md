@@ -52,7 +52,7 @@ Money values are stored in cents as integers. Tickers are stored in uppercase.
 
 ## Hosted demo
 
-The online version has a one-click guest workspace, saved portfolio records and explicitly labelled illustrative prices. See [hosted setup and deployment](hosted/README.md) for the Worker/D1 deployment and verification instructions.
+The online version has a one-click guest workspace, saved portfolio records and a [Market Quotes page](https://yash-stock-portfolio-tracker.yashroushan.chatgpt.site/market) with delayed TradingView quotes. Portfolio calculations use labelled illustrative USD prices by default and support Tiingo closing prices with a licensed server-side token. See [hosted setup and deployment](hosted/README.md).
 
 ## Local setup
 

@@ -1,7 +1,12 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { isHostedDemo } from "../api/client";
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `rounded-full px-4 py-2 text-sm font-semibold transition ${
+    isActive ? "bg-ink text-bone" : "text-ink hover:bg-fog"
+  }`;
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
@@ -25,22 +30,34 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               Stock Portfolio Tracker · Yash Roushan
             </p>
           </div>
-          {user ? (
-            <div className="flex min-w-0 items-center gap-3">
-              <span
-                className="max-w-[13rem] truncate text-sm text-ink/70"
-                title={guest ? undefined : user.email}
-              >
-                {guest ? "Your demo workspace" : user.email}
-              </span>
-              <button
-                onClick={logout}
-                className="shrink-0 rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/40"
-              >
-                Sign out
-              </button>
-            </div>
-          ) : null}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-3">
+            <nav aria-label="Main navigation" className="flex flex-wrap gap-1">
+              {user ? (
+                <NavLink to="/" end className={navLinkClass}>
+                  Portfolios
+                </NavLink>
+              ) : null}
+              <NavLink to="/market" className={navLinkClass}>
+                Market Quotes
+              </NavLink>
+            </nav>
+            {user ? (
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  className="max-w-[13rem] truncate text-sm text-ink/70"
+                  title={guest ? undefined : user.email}
+                >
+                  {guest ? "Your demo workspace" : user.email}
+                </span>
+                <button
+                  onClick={logout}
+                  className="shrink-0 rounded-full border border-ink/20 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/40"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
       {isHostedDemo ? (
@@ -50,7 +67,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         >
           <p>
             <strong className="font-semibold text-ink">
-              Interactive demo · Sample prices in USD
+              Interactive demo
             </strong>
           </p>
           <p className="mt-1">

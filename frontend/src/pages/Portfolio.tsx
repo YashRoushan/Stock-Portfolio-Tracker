@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import Layout from "../components/Layout";
 import { apiFetch, isHostedDemo } from "../api/client";
+import PriceDisclosure, { type Pricing } from "../components/PriceDisclosure";
 import { formatCurrency, formatPct } from "../lib/format";
 
 const COLORS = [
@@ -61,6 +62,7 @@ type Dividend = {
 const PortfolioPage = () => {
   const { id } = useParams();
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [pricing, setPricing] = useState<Pricing>();
   const [dividends, setDividends] = useState<Dividend[]>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof Holding>("currentValueCents");
@@ -93,10 +95,11 @@ const PortfolioPage = () => {
     }
     setLoading(true);
     try {
-      const response = await apiFetch<{ summary: Summary }>(
+      const response = await apiFetch<{ summary: Summary; pricing?: Pricing }>(
         `/api/portfolios/${id}/summary`,
       );
       setSummary(response.summary);
+      setPricing(response.pricing);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -237,6 +240,7 @@ const PortfolioPage = () => {
           </p>
         ) : null}
 
+        <PriceDisclosure pricing={pricing} />
         {summary ? (
           <section className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-3xl bg-white/80 p-6 shadow-card">
@@ -244,7 +248,7 @@ const PortfolioPage = () => {
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span>
-                    {isHostedDemo ? "Sample valuation" : "Total value"}
+                    {pricing?.mode === "sample" ? "Sample valuation" : "Total value"}
                   </span>
                   <span className="font-semibold">
                     {hasMissingQuotes
@@ -396,7 +400,7 @@ const PortfolioPage = () => {
                       </th>
                       <th className="py-2">Realized</th>
                       <th className="py-2">
-                        {isHostedDemo ? "Sample change" : "Daily"}
+                        {pricing?.mode === "sample" ? "Sample change" : "Daily"}
                       </th>
                       <th className="py-2">Dividends</th>
                     </tr>
@@ -499,7 +503,7 @@ const PortfolioPage = () => {
         </datalist>
         {isHostedDemo ? (
           <p className="text-sm text-ink/70">
-            Sample quotes are available for AAPL, MSFT, VTI, GOOGL and NVDA.
+            The hosted valuation feed covers AAPL, MSFT, VTI, GOOGL and NVDA.
             Transaction prices are entered in USD.
           </p>
         ) : null}

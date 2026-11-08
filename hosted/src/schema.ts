@@ -60,3 +60,11 @@ export const requestLimits = sqliteTable("request_limits", {
   count: integer("count").notNull(),
   expiresAt: integer("expires_at").notNull(),
 }, (table) => [index("request_limits_expiry_idx").on(table.expiresAt)]);
+
+export const marketQuotes = sqliteTable("market_quotes", {
+  ticker: text("ticker").primaryKey(),
+  priceCents: integer("price_cents"),
+  changeCents: integer("change_cents"),
+  tradingDay: text("trading_day"),
+  nextAttemptAt: integer("next_attempt_at").notNull(),
+});

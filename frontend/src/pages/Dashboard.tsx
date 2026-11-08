@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { apiFetch, isHostedDemo } from "../api/client";
+import { apiFetch } from "../api/client";
+import PriceDisclosure, { type Pricing } from "../components/PriceDisclosure";
 import { formatCurrency, formatPct } from "../lib/format";
 
 type Portfolio = { id: string; name: string };
@@ -21,6 +22,7 @@ const DashboardPage = () => {
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [pricing, setPricing] = useState<Pricing>();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +54,13 @@ const DashboardPage = () => {
     if (!selectedId) return;
     let active = true;
     setSummary(null);
-    apiFetch<{ summary: Summary }>(`/api/portfolios/${selectedId}/summary`)
+    setPricing(undefined);
+    apiFetch<{ summary: Summary; pricing?: Pricing }>(`/api/portfolios/${selectedId}/summary`)
       .then((response) => {
-        if (active) setSummary(response.summary);
+        if (active) {
+          setSummary(response.summary);
+          setPricing(response.pricing);
+        }
       })
       .catch((err) => {
         if (active) setError((err as Error).message);
@@ -140,7 +146,7 @@ const DashboardPage = () => {
               <div>
                 <h2 className="font-display text-xl font-semibold">Overview</h2>
                 <p className="text-sm text-ink/70">
-                  {isHostedDemo ? "Sample-price overview" : "Overview"} for{" "}
+                  Overview for{" "}
                   {selectedPortfolio?.name || "—"}
                 </p>
               </div>
@@ -153,11 +159,12 @@ const DashboardPage = () => {
                 </Link>
               ) : null}
             </div>
+            <div className="mt-3"><PriceDisclosure pricing={pricing} /></div>
             {summary ? (
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-fog p-4">
                   <p className="text-xs uppercase tracking-wide text-ink/70">
-                    {isHostedDemo ? "Sample valuation" : "Total value"}
+                    {pricing?.mode === "sample" ? "Sample valuation" : "Total value"}
                   </p>
                   <p className="mt-2 font-display text-2xl font-semibold">
                     {hasMissingQuotes

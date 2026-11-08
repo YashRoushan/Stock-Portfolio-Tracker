@@ -19,6 +19,8 @@ export interface HostedDatabase {
 export interface HostedBindings {
   DB: HostedDatabase;
   JWT_SECRET: string;
+  STOCK_PRICE_PROVIDER?: string;
+  TIINGO_API_TOKEN?: string;
 }
 
 export interface SessionUser {

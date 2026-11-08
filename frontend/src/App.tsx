@@ -7,6 +7,7 @@ import RegisterPage from "./pages/Register";
 import Layout from "./components/Layout";
 
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const MarketQuotesPage = lazy(() => import("./pages/MarketQuotes"));
 const PortfolioPage = lazy(() => import("./pages/Portfolio"));
 
 const App = () => {
@@ -16,7 +17,7 @@ const App = () => {
         fallback={
           <Layout>
             <p role="status" aria-live="polite" className="py-8 text-ink/70">
-              Loading your portfolio…
+              Loading…
             </p>
           </Layout>
         }
@@ -24,6 +25,7 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/market" element={<MarketQuotesPage />} />
           <Route
             path="/"
             element={
