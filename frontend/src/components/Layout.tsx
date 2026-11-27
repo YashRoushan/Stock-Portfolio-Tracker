@@ -65,16 +65,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           aria-label="Demo information"
           className="mx-auto mb-6 w-[calc(100%_-_2rem)] max-w-6xl rounded-2xl border border-copper/25 bg-white/80 px-5 py-4 text-sm text-ink/80 sm:w-[calc(100%_-_3rem)]"
         >
-          <p>
-            <strong className="font-semibold text-ink">
-              Interactive demo
-            </strong>
-          </p>
-          <p className="mt-1">
-            Portfolios, trades and dividends are saved in your own workspace.
-            Use example data while exploring.
-          </p>
-          {guest ? <p className="mt-1">This browser remembers your demo for up to seven days. Signing out starts fresh.</p> : null}
+          {guest ? "Guest workspace · Accessible from this browser for up to seven days." : "Interactive demo · Explore with sample data in your own workspace."}
         </aside>
       ) : null}
       <main

@@ -59,8 +59,12 @@ test("Licensed quote mode uses dated closes, shares a cache, and keeps missing p
     });
     assert.equal(trade.status, 201);
     const summaryResponse = await runtime.dispatchFetch(`${base}/api/portfolios/${portfolio.id}/summary`, { headers: auth });
-    const { summary } = await summaryResponse.json() as { summary: { totals: { totalValueCents: number } } };
+    const { summary } = await summaryResponse.json() as { summary: { totals: { totalValueCents: number }; series: unknown[] } };
     assert.equal(summary.totals.totalValueCents, 37_035);
+    assert.deepEqual(summary.series, [
+      { date: daysAgo(4), valueCents: 30_000, marketValueCents: 36_354 },
+      { date: daysAgo(1), valueCents: 30_000, marketValueCents: 37_035 },
+    ]);
   } finally {
     await runtime.dispose();
     await mock.close();

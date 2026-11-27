@@ -1,7 +1,7 @@
 export interface PriceQuote {
   ticker: string;
   priceCents: number;
-  changeCents: number;
+  changeCents: number | null;
 }
 
 export interface MarketDataProvider {

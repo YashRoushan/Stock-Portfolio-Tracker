@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -9,7 +9,6 @@ import priceRoutes from "./routes/prices";
 import dividendRoutes from "./routes/dividends";
 import { errorHandler } from "./middleware/error";
 
-dotenv.config();
 
 const app = express();
 

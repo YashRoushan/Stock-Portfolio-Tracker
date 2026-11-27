@@ -5,12 +5,9 @@ import {
   Pie,
   Cell,
   Tooltip,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
   ResponsiveContainer,
 } from "recharts";
+import PerformanceChart, { type HistoryPoint } from "../components/PerformanceChart";
 import Layout from "../components/Layout";
 import { apiFetch, isHostedDemo } from "../api/client";
 import PriceDisclosure, { type Pricing } from "../components/PriceDisclosure";
@@ -30,16 +27,17 @@ type Holding = {
   quantity: number;
   avgCostCents: number;
   costBasisCents: number;
-  currentPriceCents: number;
-  currentValueCents: number;
-  unrealizedPlCents: number;
+  currentPriceCents: number | null;
+  currentValueCents: number | null;
+  unrealizedPlCents: number | null;
   realizedPlCents: number;
-  dailyChangeCents: number;
-  dailyChangePct: number;
+  dailyChangeCents: number | null;
+  dailyChangePct: number | null;
   dividendsCents: number;
 };
 
 type Summary = {
+  coverage: { priced: number; open: number };
   holdings: Holding[];
   totals: {
     totalValueCents: number;
@@ -49,7 +47,7 @@ type Summary = {
     totalDividendsCents: number;
   };
   allocation: Array<{ ticker: string; valueCents: number; pct: number }>;
-  series: Array<{ date: string; valueCents: number }>;
+  series: HistoryPoint[];
 };
 
 type Dividend = {
@@ -190,6 +188,8 @@ const PortfolioPage = () => {
     const sorted = [...filtered].sort((a, b) => {
       const aVal = a[sortKey];
       const bVal = b[sortKey];
+      if (aVal === null) return bVal === null ? 0 : 1;
+      if (bVal === null) return -1;
       if (aVal < bVal) {
         return sortDir === "asc" ? -1 : 1;
       }
@@ -210,9 +210,9 @@ const PortfolioPage = () => {
     }
   };
 
-  const hasMissingQuotes = summary?.holdings.some(
-    (holding) => holding.quantity > 0 && holding.currentPriceCents <= 0,
-  );
+  const partial = summary && summary.coverage.priced < summary.coverage.open;
+  const unpriced = partial && summary.coverage.priced === 0;
+  const coverage = partial ? `Partial · ${summary.coverage.priced} of ${summary.coverage.open} open holdings priced` : "";
 
   return (
     <Layout>
@@ -244,16 +244,15 @@ const PortfolioPage = () => {
         {summary ? (
           <section className="grid gap-6 lg:grid-cols-3">
             <div className="rounded-3xl bg-white/80 p-6 shadow-card">
-              <h2 className="font-display text-lg font-semibold">KPIs</h2>
+              <h2 className="font-display text-lg font-semibold">Portfolio summary</h2>
+              {coverage && <p className="text-xs text-ink/70">{coverage} · value and unrealised P/L are partial.</p>}
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span>
                     {pricing?.mode === "sample" ? "Sample valuation" : "Total value"}
                   </span>
                   <span className="font-semibold">
-                    {hasMissingQuotes
-                      ? "Unavailable"
-                      : formatCurrency(summary.totals.totalValueCents)}
+                    {formatCurrency(unpriced ? null : summary.totals.totalValueCents)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -265,9 +264,7 @@ const PortfolioPage = () => {
                 <div className="flex justify-between">
                   <span>Unrealized P/L</span>
                   <span className="font-semibold">
-                    {hasMissingQuotes
-                      ? "Unavailable"
-                      : formatCurrency(summary.totals.totalUnrealizedPlCents)}
+                    {formatCurrency(unpriced ? null : summary.totals.totalUnrealizedPlCents)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -284,38 +281,7 @@ const PortfolioPage = () => {
                 </div>
               </div>
             </div>
-            <div className="rounded-3xl bg-white/80 p-6 shadow-card lg:col-span-2">
-              <h2 className="font-display text-lg font-semibold">
-                Cost-basis history
-              </h2>
-              <p className="text-xs text-ink/70">
-                Cost basis after trades, including fees · USD
-              </p>
-              <div
-                className="mt-4 h-48"
-                role="img"
-                aria-label="Cost basis over transaction dates, in US dollars"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={summary.series}>
-                    <XAxis dataKey="date" hide />
-                    <YAxis hide />
-                    <Tooltip
-                      formatter={(value) => formatCurrency(Number(value))}
-                      labelFormatter={(label) => `Date: ${label}`}
-                    />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="valueCents"
-                      stroke="#b5694a"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            <div className="lg:col-span-2"><PerformanceChart series={summary.series} sample={pricing?.mode === "sample"} /></div>
           </section>
         ) : null}
 
@@ -332,7 +298,7 @@ const PortfolioPage = () => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              {hasMissingQuotes ? (
+              {partial ? (
                 <p className="mt-3 text-sm text-ink/70">
                   Some tickers have no available quote. Allocation includes
                   priced holdings only.
@@ -417,22 +383,16 @@ const PortfolioPage = () => {
                           {formatCurrency(holding.avgCostCents)}
                         </td>
                         <td className="py-3">
-                          {holding.currentPriceCents > 0 ||
-                          holding.quantity === 0
-                            ? formatCurrency(holding.currentValueCents)
-                            : "Unavailable"}
+                          {formatCurrency(holding.currentValueCents)}
                         </td>
                         <td className="py-3">
-                          {holding.currentPriceCents > 0 ||
-                          holding.quantity === 0
-                            ? formatCurrency(holding.unrealizedPlCents)
-                            : "Unavailable"}
+                          {formatCurrency(holding.unrealizedPlCents)}
                         </td>
                         <td className="py-3">
                           {formatCurrency(holding.realizedPlCents)}
                         </td>
                         <td className="py-3">
-                          {holding.currentPriceCents > 0 ? (
+                          {holding.dailyChangeCents !== null ? (
                             <>
                               {formatCurrency(holding.dailyChangeCents)} (
                               {formatPct(holding.dailyChangePct)})
@@ -469,7 +429,8 @@ const PortfolioPage = () => {
                       data={summary.allocation}
                       dataKey="valueCents"
                       nameKey="ticker"
-                      outerRadius={70}
+                      innerRadius={48}
+                      outerRadius={76}
                     >
                       {summary.allocation.map((entry, index) => (
                         <Cell

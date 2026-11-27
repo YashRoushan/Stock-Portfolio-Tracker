@@ -2,7 +2,7 @@
 
 [Open the live demo](https://yash-stock-portfolio-tracker.yashroushan.chatgpt.site) · [Yash’s portfolio](https://yashroushan.github.io/portfolio-website/engineering/)
 
-Production-ready full-stack app for tracking multi-portfolio holdings, live prices, and dividend income. Built with React + Vite + TailwindCSS + Recharts, Node + Express + Prisma, PostgreSQL, and JWT auth.
+Full-stack app for tracking multi-portfolio holdings, live prices, and dividend income. Built with React + Vite + TailwindCSS + Recharts, Node + Express + Prisma, PostgreSQL, and JWT auth.
 
 ## Architecture
 
@@ -108,9 +108,9 @@ docker compose up --build
 
 ## Screenshots
 
-![Deployed dashboard](docs/screenshots/dashboard.png)
+![Dashboard with historical holdings value and cost basis](docs/screenshots/dashboard.png)
 
-![Deployed holdings, allocation and cost-basis history](docs/screenshots/portfolio.png)
+![Portfolio details and allocation](docs/screenshots/portfolio.png)
 
 ## Testing
 
@@ -121,12 +121,11 @@ npm test
 
 ## Notes
 
-- Portfolio trend uses a simplified series based on cost basis when historical price data is not available.
+- Holdings history overlays dated closing valuations and transaction-derived cost basis. Market value is unavailable on dates without a close for every open holding. The hosted demo uses illustrative weekday observations; the licensed mode stores Tiingo closes in D1. The Express backend persists Alpha Vantage or FMP daily history in PostgreSQL. For an existing local PostgreSQL installation, run `npx prisma db push` from `backend/` to add the DailyClose table before starting the updated API.
 - Market data provider can be swapped via `MARKET_DATA_PROVIDER` (`alphavantage` or `fmp`).
 
 ## Future improvements
 
-- Add historical price ingestion for accurate time-series performance.
 - Support multi-currency portfolios and FX conversion.
 - Scheduled background jobs for dividends and end-of-day prices.
 

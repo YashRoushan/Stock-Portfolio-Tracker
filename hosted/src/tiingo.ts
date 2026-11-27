@@ -33,7 +33,7 @@ export async function fetchTiingoClose(
     }
     const [current, previous] = [...closes].sort(([left], [right]) => right.localeCompare(left));
     if (!current || !previous) return null;
-    return { tradingDay: current[0], priceCents: current[1], changeCents: current[1] - previous[1] };
+    return { history: [...closes].map(([date, priceCents]) => ({ ticker, date, priceCents })), tradingDay: current[0], priceCents: current[1], changeCents: current[1] - previous[1] };
   } catch {
     // Never include upstream errors or request credentials in a public response.
     return null;

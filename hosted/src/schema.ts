@@ -68,3 +68,9 @@ export const marketQuotes = sqliteTable("market_quotes", {
   tradingDay: text("trading_day"),
   nextAttemptAt: integer("next_attempt_at").notNull(),
 });
+
+export const dailyCloses = sqliteTable("daily_closes", {
+  ticker: text("ticker").notNull(),
+  date: text("date").notNull(),
+  priceCents: integer("price_cents").notNull(),
+}, table => [uniqueIndex("daily_closes_symbol_day").on(table.ticker, table.date)]);

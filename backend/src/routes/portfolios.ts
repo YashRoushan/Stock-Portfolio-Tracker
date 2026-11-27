@@ -3,6 +3,7 @@ import { z } from "zod";
 import prisma from "../prisma";
 import { requireAuth, AuthRequest } from "../middleware/auth";
 import { validate } from "../middleware/validate";
+import { historicalCloses } from "../services/pricing/history";
 import { priceCache } from "../services/pricing";
 import { computeHoldings, summarizePortfolio } from "../services/portfolio";
 
@@ -55,7 +56,7 @@ router.get("/:id/summary", async (req: AuthRequest, res) => {
 
   const transactions = await prisma.transaction.findMany({
     where: { portfolioId: portfolio.id, userId: req.user?.id },
-    orderBy: { occurredAt: "asc" }
+    orderBy: [{ occurredAt: "asc" }, { createdAt: "asc" }, { id: "asc" }]
   });
 
   const dividends = await prisma.dividend.findMany({
@@ -64,16 +65,9 @@ router.get("/:id/summary", async (req: AuthRequest, res) => {
   });
 
   const tickers = Array.from(new Set(transactions.map((tx) => tx.ticker)));
-  const prices = await priceCache.getQuotes(tickers);
-  const priceMap = prices.reduce<Record<string, { priceCents: number; changeCents: number }>>(
-    (acc, quote) => {
-      acc[quote.ticker] = { priceCents: quote.priceCents, changeCents: quote.changeCents };
-      return acc;
-    },
-    {}
-  );
-
-  const { holdings, series } = computeHoldings(transactions, dividends, priceMap);
+  const [prices, closes] = await Promise.all([priceCache.getQuotes(tickers), historicalCloses(tickers)]);
+  const priceMap = Object.fromEntries(prices.map(quote => [quote.ticker, quote]));
+  const { holdings, series } = computeHoldings(transactions, dividends, priceMap, closes);
   const summary = summarizePortfolio(holdings, series);
 
   return res.json({ summary });

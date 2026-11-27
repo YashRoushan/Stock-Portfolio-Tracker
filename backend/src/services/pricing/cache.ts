@@ -27,7 +27,7 @@ export class PriceCache {
         continue;
       }
 
-      const quote = await this.provider.getQuote(ticker);
+      const quote = await this.provider.getQuote(ticker).catch(() => null);
       if (quote) {
         this.cache.set(ticker, {
           quote,

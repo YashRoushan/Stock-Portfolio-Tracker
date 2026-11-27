@@ -125,16 +125,13 @@ const LoginPage = () => {
             </Link>
           </p>
         </div>
-        <div className="rounded-3xl bg-ink p-6 sm:p-10 text-bone shadow-card">
-          <h2 className="font-display text-2xl font-semibold">
-            See the whole portfolio
-          </h2>
-          <ul className="mt-6 space-y-4 text-sm text-bone/90">
-            <li>Buy and sell transactions with average-cost accounting</li>
-            <li>Holdings and allocation metrics updated per trade</li>
-            <li>Manual dividend records and cost-basis charts</li>
-          </ul>
-        </div>
+        <section className="sample-preview">
+          <h2>Portfolio allocation</h2>
+          <p className="mt-2 text-sm text-bone/80">Illustrative three-holding portfolio</p>
+          <ul className="mt-7">{[["VTI", 50], ["MSFT", 30], ["AAPL", 20]].map(([ticker, weight]) =>
+            <li key={ticker}><div className="flex justify-between"><strong>{ticker}</strong><span>{weight}%</span></div>
+              <meter aria-label={String(ticker) + " allocation"} min={0} max={100} value={weight} /></li>)}</ul>
+        </section>
       </div>
     </Layout>
   );

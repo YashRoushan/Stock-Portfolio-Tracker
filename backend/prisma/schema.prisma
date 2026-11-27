@@ -67,3 +67,10 @@ model Dividend {
   @@index([portfolioId])
   @@index([ticker])
 }
+
+model DailyClose {
+  ticker     String
+  date       String
+  priceCents Int
+  @@id([ticker, date])
+}

@@ -1,10 +1,11 @@
 import { MarketDataProvider, PriceQuote } from "./provider";
 import { toCents } from "../../utils/money";
 
-const apiKey = process.env.FMP_API_KEY || "";
+
 
 export const fmpProvider: MarketDataProvider = {
   async getQuote(ticker: string): Promise<PriceQuote | null> {
+    const apiKey = process.env.FMP_API_KEY;
     if (!apiKey) {
       return null;
     }
@@ -26,7 +27,7 @@ export const fmpProvider: MarketDataProvider = {
     return {
       ticker,
       priceCents: toCents(quote.price),
-      changeCents: toCents(quote.change || 0)
+      changeCents: Number.isFinite(quote.change) ? toCents(quote.change) : null
     };
   }
 };

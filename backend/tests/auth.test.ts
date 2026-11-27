@@ -5,8 +5,6 @@ import prisma from "../src/prisma";
 const testEmail = "test@example.com";
 
 beforeAll(async () => {
-  await prisma.transaction.deleteMany();
-  await prisma.portfolio.deleteMany();
   await prisma.user.deleteMany({ where: { email: testEmail } });
 });
 

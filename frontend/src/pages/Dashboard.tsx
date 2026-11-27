@@ -1,14 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import PerformanceChart, {
+  type HistoryPoint,
+} from "../components/PerformanceChart";
 import Layout from "../components/Layout";
 import { apiFetch } from "../api/client";
 import PriceDisclosure, { type Pricing } from "../components/PriceDisclosure";
-import { formatCurrency, formatPct } from "../lib/format";
+import { formatCurrency } from "../lib/format";
 
 type Portfolio = { id: string; name: string };
 
 type Summary = {
-  holdings: Array<{ quantity: number; currentPriceCents: number }>;
+  series: HistoryPoint[];
+  coverage: { priced: number; open: number };
+  holdings: Array<{ quantity: number; currentPriceCents: number | null }>;
   totals: {
     totalValueCents: number;
     totalCostBasisCents: number;
@@ -55,7 +60,9 @@ const DashboardPage = () => {
     let active = true;
     setSummary(null);
     setPricing(undefined);
-    apiFetch<{ summary: Summary; pricing?: Pricing }>(`/api/portfolios/${selectedId}/summary`)
+    apiFetch<{ summary: Summary; pricing?: Pricing }>(
+      `/api/portfolios/${selectedId}/summary`,
+    )
       .then((response) => {
         if (active) {
           setSummary(response.summary);
@@ -100,119 +107,93 @@ const DashboardPage = () => {
     }
   };
 
-  const hasMissingQuotes = summary?.holdings.some(
-    (holding) => holding.quantity > 0 && holding.currentPriceCents <= 0,
-  );
+  const partial = summary && summary.coverage.priced < summary.coverage.open;
+  const unpriced = partial && summary.coverage.priced === 0;
+  const coverage = partial
+    ? `Partial · ${summary.coverage.priced} of ${summary.coverage.open} open holdings priced`
+    : "";
 
   return (
     <Layout>
       <div className="space-y-8">
-        <h1 className="font-display text-3xl font-semibold">Your portfolios</h1>
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="rounded-3xl bg-white/80 p-6 shadow-card">
-            <h2 className="font-display text-xl font-semibold">Portfolios</h2>
-            {loading ? (
-              <p className="mt-4 text-sm text-ink/70">Loading portfolios...</p>
-            ) : portfolios.length ? (
-              <ul className="mt-4 space-y-3">
-                {portfolios.map((portfolio) => (
-                  <li key={portfolio.id}>
-                    <button
-                      onClick={() => setSelectedId(portfolio.id)}
-                      className={`w-full rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
-                        selectedId === portfolio.id
-                          ? "bg-ink text-bone"
-                          : "border border-ink/10 bg-white"
-                      }`}
-                    >
-                      {portfolio.name}
-                    </button>
-                  </li>
+        <div className="workspace-heading">
+          <div>
+            <h1>Portfolio overview</h1>
+            <p>Holdings, income and performance in USD</p>
+          </div>
+          {portfolios.length > 0 && (
+            <label>
+              Portfolio
+              <select
+                aria-label="Select portfolio"
+                value={selectedId ?? ""}
+                onChange={(e) => setSelectedId(e.target.value)}
+              >
+                {portfolios.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm text-ink/70">
-                No portfolios yet. Create your first one.
-              </p>
-            )}
-            {error ? (
-              <p role="alert" className="mt-4 text-sm text-red-700">
-                {error}
-              </p>
-            ) : null}
-          </div>
-          <div className="rounded-3xl bg-white/80 p-6 shadow-card lg:col-span-2">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-display text-xl font-semibold">Overview</h2>
-                <p className="text-sm text-ink/70">
-                  Overview for{" "}
-                  {selectedPortfolio?.name || "—"}
-                </p>
-              </div>
-              {selectedId ? (
-                <Link
-                  to={`/portfolio/${selectedId}`}
-                  className="rounded-full bg-ink px-4 py-2 text-xs font-semibold uppercase tracking-wide text-bone"
-                >
-                  View details
-                </Link>
-              ) : null}
-            </div>
-            <div className="mt-3"><PriceDisclosure pricing={pricing} /></div>
-            {summary ? (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-fog p-4">
-                  <p className="text-xs uppercase tracking-wide text-ink/70">
-                    {pricing?.mode === "sample" ? "Sample valuation" : "Total value"}
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-semibold">
-                    {hasMissingQuotes
-                      ? "Unavailable"
-                      : formatCurrency(summary.totals.totalValueCents)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-fog p-4">
-                  <p className="text-xs uppercase tracking-wide text-ink/70">
-                    Unrealized P/L
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-semibold">
-                    {hasMissingQuotes
-                      ? "Unavailable"
-                      : formatCurrency(summary.totals.totalUnrealizedPlCents)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-fog p-4">
-                  <p className="text-xs uppercase tracking-wide text-ink/70">
-                    Realized P/L
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-semibold">
-                    {formatCurrency(summary.totals.totalRealizedPlCents)}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-fog p-4">
-                  <p className="text-xs uppercase tracking-wide text-ink/70">
-                    Dividends
-                  </p>
-                  <p className="mt-2 font-display text-2xl font-semibold">
-                    {formatCurrency(summary.totals.totalDividendsCents)}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-6 text-sm text-ink/70">
-                Select a portfolio to see metrics.
-              </p>
-            )}
-          </div>
-        </section>
-        {hasMissingQuotes ? (
-          <p className="text-sm text-ink/70" role="status">
-            Some holdings have no available quote. Their cost basis remains
-            available; valuation and unrealised return need a price.
+              </select>
+            </label>
+          )}
+        </div>
+        {error && (
+          <p role="alert" className="text-red-700">
+            {error}
           </p>
-        ) : null}
-
+        )}
+        {summary ? (
+          <>
+            <section className="value-panel">
+              <div>
+                <p className="value-label">
+                  {pricing?.mode === "sample"
+                    ? "Illustrative holdings value"
+                    : "Holdings value"}
+                </p>
+                <p className="portfolio-value">
+                  {formatCurrency(
+                    unpriced ? null : summary.totals.totalValueCents,
+                  )}
+                </p>
+                <p>{coverage || selectedPortfolio?.name}</p>
+              </div>
+              <Link className="details-link" to={`/portfolio/${selectedId}`}>
+                View holdings <span aria-hidden="true">→</span>
+              </Link>
+            </section>
+            <div className="dashboard-metrics">
+              {(
+                [
+                  ["Cost basis", summary.totals.totalCostBasisCents],
+                  [
+                    partial ? "Unrealised P/L · partial" : "Unrealised P/L",
+                    unpriced ? null : summary.totals.totalUnrealizedPlCents,
+                  ],
+                  ["Realised P/L", summary.totals.totalRealizedPlCents],
+                  ["Dividend income", summary.totals.totalDividendsCents],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label}>
+                  <p>{label}</p>
+                  <strong>{formatCurrency(value)}</strong>
+                </div>
+              ))}
+            </div>
+            <PerformanceChart
+              series={summary.series}
+              sample={pricing?.mode === "sample"}
+            />
+            <PriceDisclosure pricing={pricing} />
+          </>
+        ) : (
+          <p className="text-sm text-ink/70">
+            {loading || (selectedId && !error)
+              ? "Loading portfolio…"
+              : "Create a portfolio to get started."}
+          </p>
+        )}
         <section className="rounded-3xl bg-white/80 p-6 shadow-card">
           <h2 className="font-display text-xl font-semibold">
             Create portfolio
@@ -238,21 +219,6 @@ const DashboardPage = () => {
               {creating ? "Creating…" : "Create"}
             </button>
           </form>
-          {summary ? (
-            <p className="mt-4 text-xs text-ink/70">
-              Cost basis: {formatCurrency(summary.totals.totalCostBasisCents)} ·
-              Unrealised return:{" "}
-              {hasMissingQuotes
-                ? "Unavailable"
-                : formatPct(
-                    summary.totals.totalCostBasisCents
-                      ? (summary.totals.totalValueCents -
-                          summary.totals.totalCostBasisCents) /
-                          summary.totals.totalCostBasisCents
-                      : 0,
-                  )}
-            </p>
-          ) : null}
         </section>
       </div>
     </Layout>

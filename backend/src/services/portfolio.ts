@@ -16,15 +16,17 @@ export type HoldingMetrics = {
   quantity: number;
   avgCostCents: number;
   costBasisCents: number;
-  currentPriceCents: number;
-  currentValueCents: number;
-  unrealizedPlCents: number;
+  currentPriceCents: number | null;
+  currentValueCents: number | null;
+  unrealizedPlCents: number | null;
   realizedPlCents: number;
-  dailyChangeCents: number;
-  dailyChangePct: number;
+  dailyChangeCents: number | null;
+  dailyChangePct: number | null;
   dividendsCents: number;
 };
 
+export type DailyClose = { ticker: string; date: string; priceCents: number };
+export type HistoryPoint = { date: string; valueCents: number; marketValueCents: number | null };
 export type PortfolioSummary = {
   holdings: HoldingMetrics[];
   totals: {
@@ -34,19 +36,22 @@ export type PortfolioSummary = {
     totalRealizedPlCents: number;
     totalDividendsCents: number;
   };
+  coverage: { priced: number; open: number };
   allocation: Array<{ ticker: string; valueCents: number; pct: number }>;
-  series: Array<{ date: string; valueCents: number }>;
+  series: HistoryPoint[];
 };
 
-type PriceMap = Record<string, { priceCents: number; changeCents: number }>;
+type PriceMap = Record<string, { priceCents: number; changeCents: number | null }>;
 
+const roundShares = (quantity: number) => Math.round(quantity * 1_000_000) / 1_000_000;
 const toNumber = (value: unknown): number => Number(value);
 
 export const computeHoldings = (
   transactions: PortfolioTransaction[],
   dividends: PortfolioDividend[],
-  prices: PriceMap
-): { holdings: HoldingMetrics[]; series: Array<{ date: string; valueCents: number }> } => {
+  prices: PriceMap,
+  closes: DailyClose[] = []
+): { holdings: HoldingMetrics[]; series: HistoryPoint[] } => {
   const grouped = new Map<string, PortfolioTransaction[]>();
   for (const tx of transactions) {
     const ticker = tx.ticker.toUpperCase();
@@ -74,7 +79,7 @@ export const computeHoldings = (
       const qty = toNumber(tx.quantity);
       const gross = mulCents(tx.priceCents, qty);
       if (tx.type === "BUY") {
-        quantity += qty;
+        quantity = roundShares(quantity + qty);
         costBasisCents += gross + tx.feeCents;
       } else {
         const avgCostCents = quantity ? costBasisCents / quantity : 0;
@@ -82,19 +87,19 @@ export const computeHoldings = (
         const proceeds = gross - tx.feeCents;
         realizedPlCents += proceeds - removedCost;
         costBasisCents -= removedCost;
-        quantity -= qty;
+        quantity = roundShares(quantity - qty);
       }
     }
 
     const avgCostCents = quantity ? Math.round(costBasisCents / quantity) : 0;
-    const price = prices[ticker]?.priceCents || 0;
-    const change = prices[ticker]?.changeCents || 0;
-    const currentValueCents = mulCents(price, quantity);
-    const unrealizedPlCents = currentValueCents - costBasisCents;
-    const dailyChangeCents = mulCents(change, quantity);
-    const dailyChangePct = currentValueCents
-      ? dailyChangeCents / currentValueCents
-      : 0;
+    const quote = prices[ticker];
+    const price = quote?.priceCents > 0 ? quote.priceCents : null;
+    const change = price === null ? null : quote.changeCents;
+    const previousClose = price !== null && change !== null ? price - change : 0;
+    const currentValueCents = quantity === 0 ? 0 : price === null ? null : mulCents(price, quantity);
+    const unrealizedPlCents = currentValueCents === null ? null : currentValueCents - costBasisCents;
+    const dailyChangeCents = change === null ? null : mulCents(change, quantity);
+    const dailyChangePct = previousClose > 0 && change !== null && quantity > 0 ? change / previousClose : null;
 
     holdings.push({
       ticker,
@@ -111,24 +116,25 @@ export const computeHoldings = (
     });
   }
 
-  const series = computeSimplifiedSeries(transactions);
+  const series = computeHistory(transactions, closes);
 
   return { holdings, series };
 };
 
 export const summarizePortfolio = (
   holdings: HoldingMetrics[],
-  series: Array<{ date: string; valueCents: number }>
+  series: HistoryPoint[]
 ): PortfolioSummary => {
-  const totalValueCents = holdings.reduce((sum, holding) => sum + holding.currentValueCents, 0);
+  const totalValueCents = holdings.reduce((sum, holding) => sum + (holding.currentValueCents ?? 0), 0);
   const totalCostBasisCents = holdings.reduce((sum, holding) => sum + holding.costBasisCents, 0);
-  const totalUnrealizedPlCents = holdings.reduce((sum, holding) => sum + holding.unrealizedPlCents, 0);
+  const totalUnrealizedPlCents = holdings.reduce((sum, holding) => sum + (holding.unrealizedPlCents ?? 0), 0);
   const totalRealizedPlCents = holdings.reduce((sum, holding) => sum + holding.realizedPlCents, 0);
   const totalDividendsCents = holdings.reduce((sum, holding) => sum + holding.dividendsCents, 0);
 
-  const allocation = holdings.map((holding) => {
-    const pct = totalValueCents ? holding.currentValueCents / totalValueCents : 0;
-    return { ticker: holding.ticker, valueCents: holding.currentValueCents, pct };
+  const priced = holdings.filter(h => h.quantity > 0 && h.currentValueCents !== null);
+  const allocation = priced.map((holding) => {
+    const pct = totalValueCents ? holding.currentValueCents! / totalValueCents : 0;
+    return { ticker: holding.ticker, valueCents: holding.currentValueCents!, pct };
   });
 
   return {
@@ -140,12 +146,13 @@ export const summarizePortfolio = (
       totalRealizedPlCents,
       totalDividendsCents
     },
+    coverage: { priced: priced.length, open: holdings.filter(h => h.quantity > 0).length },
     allocation,
     series
   };
 };
 
-const computeSimplifiedSeries = (transactions: PortfolioTransaction[]): Array<{ date: string; valueCents: number }> => {
+const computeHistory = (transactions: PortfolioTransaction[], closes: DailyClose[]): HistoryPoint[] => {
   const sorted = [...transactions].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
   const byDate = new Map<string, PortfolioTransaction[]>();
 
@@ -157,10 +164,19 @@ const computeSimplifiedSeries = (transactions: PortfolioTransaction[]): Array<{ 
     byDate.get(key)?.push(tx);
   }
 
-  let quantityByTicker: Record<string, { qty: number; costBasisCents: number }> = {};
-  const series: Array<{ date: string; valueCents: number }> = [];
+  const dailyPrices = new Map<string, Map<string, number>>();
+  const firstDay = sorted.length ? toDateKey(sorted[0].occurredAt) : null;
+  for (const close of closes) {
+    if (!firstDay || close.date < firstDay) continue;
+    if (!dailyPrices.has(close.date)) dailyPrices.set(close.date, new Map());
+    dailyPrices.get(close.date)!.set(close.ticker, close.priceCents);
+  }
+  const dates = [...new Set([...byDate.keys(), ...dailyPrices.keys()])].sort();
+  const quantityByTicker: Record<string, { qty: number; costBasisCents: number }> = Object.create(null);
+  const series: HistoryPoint[] = [];
 
-  for (const [date, txs] of byDate.entries()) {
+  for (const date of dates) {
+    const txs = byDate.get(date) ?? [];
     for (const tx of txs) {
       const ticker = tx.ticker.toUpperCase();
       if (!quantityByTicker[ticker]) {
@@ -171,13 +187,13 @@ const computeSimplifiedSeries = (transactions: PortfolioTransaction[]): Array<{ 
       const gross = mulCents(tx.priceCents, qty);
 
       if (tx.type === "BUY") {
-        record.qty += qty;
+        record.qty = roundShares(record.qty + qty);
         record.costBasisCents += gross + tx.feeCents;
       } else {
         const avgCostCents = record.qty ? record.costBasisCents / record.qty : 0;
         const removedCost = Math.round(avgCostCents * qty);
         record.costBasisCents -= removedCost;
-        record.qty -= qty;
+        record.qty = roundShares(record.qty - qty);
       }
     }
 
@@ -185,7 +201,17 @@ const computeSimplifiedSeries = (transactions: PortfolioTransaction[]): Array<{ 
       (sum, item) => sum + item.costBasisCents,
       0
     );
-    series.push({ date, valueCents: totalCostBasis });
+    let marketValueCents: number | null = 0;
+    for (const [ticker, position] of Object.entries(quantityByTicker)) {
+      if (!position.qty) continue;
+      const close = dailyPrices.get(date)?.get(ticker);
+      if (close === undefined) {
+        marketValueCents = null;
+        break;
+      }
+      marketValueCents += mulCents(close, position.qty);
+    }
+    series.push({ date, valueCents: totalCostBasis, marketValueCents });
   }
 
   return series;

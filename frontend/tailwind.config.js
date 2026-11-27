@@ -3,9 +3,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#111415",
-        bone: "#f7f4ef",
-        copper: "#b5694a",
+        ink: "#16362d",
+        bone: "#f4f7f4",
+        copper: "#91704c",
         mint: "#7cc6a4",
         clay: "#d7b08c",
         fog: "#eef2f3"

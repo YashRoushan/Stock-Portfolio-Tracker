@@ -4,7 +4,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { computeHoldings, summarizePortfolio } from "../../backend/src/services/portfolio";
 import { authenticate, hashPassword, issueToken, limitAuthentication, passwordMatches, sessionUser, type ApiEnvironment } from "./auth";
-import { configuredPricing, portfolioQuotes } from "./quotes";
+import { configuredPricing, historicalCloses, portfolioQuotes } from "./quotes";
 import { credentialsSchema, dividendSchema, portfolioSchema, transactionSchema } from "./validation";
 import type { DividendRow, PortfolioRow, SessionUser, TransactionRow, UserRow } from "./types";
 import type { Context } from "hono";
@@ -195,7 +195,7 @@ api.get("/api/portfolios/:id/summary", async (c) => {
   const tickers = transactionRows.map((row) => row.ticker);
   const { prices, pricing } = await portfolioQuotes(c.env, tickers);
   const priceMap = Object.fromEntries(prices.map((quote) => [quote.ticker, quote]));
-  const result = computeHoldings(transactionRows.map(publicTransaction), dividendRows.map(publicDividend), priceMap);
+  const result = computeHoldings(transactionRows.map(publicTransaction), dividendRows.map(publicDividend), priceMap, await historicalCloses(c.env, tickers));
   return c.json({ summary: summarizePortfolio(result.holdings, result.series), pricing });
 });
 
