@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { isHostedDemo } from "../api/client";
 
@@ -10,6 +10,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
+  const market = useLocation().pathname === "/market";
   const guest = user?.email.endsWith("@demo.invalid");
 
   return (
@@ -17,17 +18,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <header className="px-4 py-4 sm:px-6 sm:py-6">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 rounded-3xl bg-white/80 px-5 py-4 shadow-card sm:px-6">
+      <header className="atlas-header">
+        <div className="atlas-bar">
           <div>
             <Link
               to="/"
-              className="font-display text-2xl font-semibold text-ink"
+              className="atlas-brand font-display text-2xl font-semibold text-ink"
             >
-              Stock Atlas
+              <span className="atlas-mark" aria-hidden="true"><i/><i/><i/></span>Stock Atlas
             </Link>
             <p className="text-sm text-ink/70">
-              Stock Portfolio Tracker · Yash Roushan
+              Stock Portfolio Tracker
             </p>
           </div>
           <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-3">
@@ -60,7 +61,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </header>
-      {isHostedDemo ? (
+      {isHostedDemo && !market ? (
         <aside
           aria-label="Demo information"
           className="mx-auto mb-6 w-[calc(100%_-_2rem)] max-w-6xl rounded-2xl border border-copper/25 bg-white/80 px-5 py-4 text-sm text-ink/80 sm:w-[calc(100%_-_3rem)]"
@@ -80,7 +81,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           className="font-semibold underline underline-offset-4"
           href="https://yashroushan.github.io/portfolio-website/engineering/"
         >
-          Yash Roushan’s portfolio
+          Developer portfolio
         </a>
         <span aria-hidden="true"> · </span>
         <a

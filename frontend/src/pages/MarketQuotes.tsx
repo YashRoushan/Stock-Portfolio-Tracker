@@ -1,4 +1,5 @@
 import React from "react";
+import BullBackdrop from "../components/BullBackdrop";
 import Layout from "../components/Layout";
 
 const watchlist = [
@@ -30,19 +31,18 @@ widgetUrl.hash = encodeURIComponent(JSON.stringify({
 const MarketQuotesPage = () => (
   <Layout>
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-ink">
-          Market Quotes
-        </h1>
-        <p className="mt-2 max-w-2xl text-ink/70">
-          TradingView provides delayed USD quotes for five U.S. stocks and funds.
-          Availability varies by symbol.
-        </p>
-      </div>
+      <section className="market-hero" aria-labelledby="market-title">
+        <div className="market-intro">
+          <p className="market-kicker">U.S. equities &amp; funds</p>
+          <h1 id="market-title">Market <em>Quotes</em></h1>
+          <p className="market-caption">Follow five U.S. securities with delayed quotes in USD.</p>
+        </div>
+        <BullBackdrop />
+      </section>
 
       <section
         aria-labelledby="watchlist-heading"
-        className="rounded-3xl bg-white/80 p-4 shadow-card sm:p-6"
+        className="market-watchlist"
       >
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
           <h2
@@ -68,7 +68,7 @@ const MarketQuotesPage = () => (
           className="mt-4 block h-[330px] w-full rounded-2xl border border-ink/10 bg-white"
         />
         <p className="mt-4 text-sm text-ink/70">
-          If the table is unavailable, open a quote directly on TradingView:
+          Individual quotes on TradingView
         </p>
         <ul className="mt-2 flex flex-wrap gap-2">
           {watchlist.map(({ ticker, company, symbol }) => (
