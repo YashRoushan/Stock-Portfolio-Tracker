@@ -2,10 +2,12 @@ import React, { lazy, Suspense } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { isHostedDemo } from "./api/client";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/Register";
 import Layout from "./components/Layout";
 
+const SamplePortfolio = lazy(() => import("./pages/SamplePortfolio"));
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
 const MarketQuotesPage = lazy(() => import("./pages/MarketQuotes"));
 const PortfolioPage = lazy(() => import("./pages/Portfolio"));
@@ -23,6 +25,7 @@ const App = () => {
         }
       >
         <Routes>
+          {isHostedDemo && <Route path="/sample" element={<SamplePortfolio />} />}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/market" element={<MarketQuotesPage />} />

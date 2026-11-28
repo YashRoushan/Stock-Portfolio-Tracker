@@ -117,31 +117,34 @@ const sampleSessions = [
   ["2026-06-30", 19850, 41500, 27500, 17500, 13500],
 ] as const;
 
-export async function historicalCloses(env: HostedBindings, tickers: string[]) {
-  const sampleSymbols = ["AAPL", "MSFT", "VTI", "GOOGL", "NVDA"];
-  const symbols = sampleSymbols.filter(ticker => tickers.includes(ticker));
-  if (!symbols.length) return [];
-  if (configuredPricing(env).mode === "sample") {
-    // Interpolate weekday observations only for the explicitly illustrative demo.
-    const history = [];
-    for (let i = 1; i < sampleSessions.length; i++) {
-      const [start, ...from] = sampleSessions[i - 1];
-      const [end, ...to] = sampleSessions[i];
-      const first = Date.parse(start);
-      const last = Date.parse(end);
-      for (let time = first + (i === 1 ? 0 : 86_400_000); time <= last; time += 86_400_000) {
-        const day = new Date(time);
-        if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue;
-        const fraction = (time - first) / (last - first);
-        for (const ticker of symbols) {
-          const index = sampleSymbols.indexOf(ticker);
-          history.push({ ticker, date: day.toISOString().slice(0, 10),
-            priceCents: Math.round(from[index] + (to[index] - from[index]) * fraction) });
-        }
+const sampleSymbols = ["AAPL", "MSFT", "VTI", "GOOGL", "NVDA"];
+
+export function sampleCloses(symbols: string[]) {
+  // Interpolate weekday observations only for the explicitly illustrative demo.
+  const history = [];
+  for (let i = 1; i < sampleSessions.length; i++) {
+    const [start, ...from] = sampleSessions[i - 1];
+    const [end, ...to] = sampleSessions[i];
+    const first = Date.parse(start);
+    const last = Date.parse(end);
+    for (let time = first + (i === 1 ? 0 : 86_400_000); time <= last; time += 86_400_000) {
+      const day = new Date(time);
+      if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue;
+      const fraction = (time - first) / (last - first);
+      for (const ticker of symbols) {
+        const index = sampleSymbols.indexOf(ticker);
+        history.push({ ticker, date: day.toISOString().slice(0, 10),
+          priceCents: Math.round(from[index] + (to[index] - from[index]) * fraction) });
       }
     }
-    return history;
   }
+  return history;
+}
+
+export async function historicalCloses(env: HostedBindings, tickers: string[]) {
+  const symbols = sampleSymbols.filter(ticker => tickers.includes(ticker));
+  if (!symbols.length) return [];
+  if (configuredPricing(env).mode === "sample") return sampleCloses(symbols);
   const records = await env.DB.prepare(
     `SELECT ticker, date, price_cents AS priceCents FROM daily_closes WHERE ticker IN (${symbols.map(() => "?").join(",")})`
   ).bind(...symbols).all<{ ticker: string; date: string; priceCents: number }>();

@@ -10,7 +10,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
-  const market = useLocation().pathname === "/market";
+  const { pathname } = useLocation();
   const guest = user?.email.endsWith("@demo.invalid");
 
   return (
@@ -61,7 +61,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </header>
-      {isHostedDemo && !market ? (
+      {isHostedDemo && pathname !== "/market" && pathname !== "/sample" && pathname !== "/sample/" ? (
         <aside
           aria-label="Demo information"
           className="mx-auto mb-6 w-[calc(100%_-_2rem)] max-w-6xl rounded-2xl border border-copper/25 bg-white/80 px-5 py-4 text-sm text-ink/80 sm:w-[calc(100%_-_3rem)]"

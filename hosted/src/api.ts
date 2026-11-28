@@ -4,7 +4,8 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { computeHoldings, summarizePortfolio } from "../../backend/src/services/portfolio";
 import { authenticate, hashPassword, issueToken, limitAuthentication, passwordMatches, sessionUser, type ApiEnvironment } from "./auth";
-import { configuredPricing, historicalCloses, portfolioQuotes } from "./quotes";
+import { sampleTrades, sampleDividends } from "./sampleLedger";
+import { configuredPricing, historicalCloses, portfolioQuotes, sampleCloses, sampleQuotes, demoPricing } from "./quotes";
 import { credentialsSchema, dividendSchema, portfolioSchema, transactionSchema } from "./validation";
 import type { DividendRow, PortfolioRow, SessionUser, TransactionRow, UserRow } from "./types";
 import type { Context } from "hono";
@@ -112,28 +113,18 @@ api.post("/api/auth/demo", async (c) => {
   const portfolioId = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000).toISOString();
-  const trades = [
-    ["AAPL", "BUY", 40, 18000, "2026-01-15"],
-    ["MSFT", "BUY", 20, 38000, "2026-01-20"],
-    ["VTI", "BUY", 30, 25000, "2026-02-10"],
-    ["GOOGL", "BUY", 20, 16000, "2026-03-01"],
-    ["AAPL", "BUY", 10, 19000, "2026-03-15"],
-    ["NVDA", "BUY", 40, 11000, "2026-04-10"],
-    ["AAPL", "SELL", 5, 20000, "2026-06-15"],
-  ] as const;
-  const dividends = [["AAPL", 1250], ["MSFT", 5000], ["VTI", 7500]] as const;
   const statements = [
     c.env.DB.prepare(
       "INSERT INTO users (id, email, password_hash, is_demo, expires_at, created_at) VALUES (?, ?, NULL, 1, ?, ?)",
     ).bind(id, email, expiresAt, createdAt),
     c.env.DB.prepare("INSERT INTO portfolios (id, name, user_id, created_at) VALUES (?, ?, ?, ?)")
       .bind(portfolioId, "Sample portfolio", id, createdAt),
-    ...trades.map(([ticker, type, quantity, priceCents, date]) => c.env.DB.prepare(
+    ...sampleTrades.map(([ticker, type, quantity, priceCents, date]) => c.env.DB.prepare(
       `INSERT INTO transactions
         (id, portfolio_id, user_id, ticker, type, quantity_micros, price_cents, fee_cents, occurred_at, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     ).bind(crypto.randomUUID(), portfolioId, id, ticker, type, quantity * 1_000_000, priceCents, `${date}T00:00:00.000Z`, createdAt)),
-    ...dividends.map(([ticker, amount]) => c.env.DB.prepare(
+    ...sampleDividends.map(([ticker, amount]) => c.env.DB.prepare(
       `INSERT INTO dividends (id, portfolio_id, user_id, ticker, amount_cents, occurred_at, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).bind(crypto.randomUUID(), portfolioId, id, ticker, amount, "2026-07-01T00:00:00.000Z", createdAt)),
@@ -148,6 +139,16 @@ api.post("/api/auth/demo", async (c) => {
 });
 
 // Authenticate the entire data API, including the exact collection URLs.
+// The public sample is derived entirely from the fixed ledger and illustrative prices.
+api.get("/api/sample-portfolio", (c) => {
+  const transactions = sampleTrades.map(([ticker, type, quantity, priceCents, date]) =>
+    ({ ticker, type, quantity, priceCents, feeCents: 0, occurredAt: new Date(date) }));
+  const dividends = sampleDividends.map(([ticker, amountCents]) => ({ ticker, amountCents }));
+  const symbols = [...new Set(transactions.map(trade => trade.ticker))];
+  const { holdings, series } = computeHoldings(transactions, dividends, sampleQuotes, sampleCloses(symbols));
+  return c.json({ summary: summarizePortfolio(holdings, series), pricing: demoPricing });
+});
+
 api.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/health" || c.req.path.startsWith("/api/auth/")) return next();
   return authenticate(c, next);

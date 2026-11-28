@@ -26,6 +26,18 @@ before(async () => {
 });
 after(async () => { await runtime?.dispose(); });
 
+test('The read-only sample works without a session and uses the pictured ledger', async () => {
+  const { status, body } = await call('/api/sample-portfolio');
+  assert.equal(status, 200);
+  assert.equal(body.pricing.mode, 'sample');
+  assert.equal(body.summary.holdings.length, 5);
+  assert.equal(body.summary.totals.totalValueCents, 3438250);
+  assert.equal(body.summary.totals.totalCostBasisCents, 3089000);
+  assert.ok(body.summary.series.length > 30);
+  assert.deepEqual((await call('/api/sample-portfolio', { token: 'expired' })).body, body);
+  assert.equal((await call('/api/sample-portfolio', { method: 'POST' })).status, 401);
+});
+
 test('The hosted API persists isolated portfolios, real trades and dividends', async () => {
   assert.equal((await call('/api/health')).status, 200);
   assert.equal((await call('/api/portfolios')).status, 401);
